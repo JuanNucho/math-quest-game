@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>GED Math Quest</title>
+
+<style>
+body{
+margin:0;
+font-family:Arial;
+background:linear-gradient(135deg,#020617,#065f46,#022c22);
+color:white;
+overflow:hidden;
+}
+
+#game{
+width:1000px;
+margin:20px auto;
+text-align:center;
+}
+
+h1{margin:10px 0;font-size:32px;}
+
+#stageTitle{font-size:18px;margin-bottom:10px;}
+
+#xpContainer{
+width:100%;
+background:#111;
+height:20px;
+border-radius:10px;
+margin-bottom:10px;
+}
+
+#xpBar{
+height:100%;
+width:0%;
+background:linear-gradient(90deg,#22c55e,#4ade80);
+border-radius:10px;
+transition:.3s;
+}
+
+#card{
+background:white;
+color:#1f2d3d;
+padding:20px;
+border-radius:10px;
+min-height:260px;
+text-align:left;
+}
+
+.source{
+font-size:14px;
+margin-bottom:12px;
+background:#f2f2f2;
+padding:10px;
+border-radius:6px;
+}
+
+.choice{
+background:#e8f1ff;
+padding:10px;
+margin:8px 0;
+border-radius:6px;
+cursor:pointer;
+transition:.2s;
+}
+
+.choice:hover{
+background:#cce0ff;
+transform:scale(1.02);
+}
+
+.correct{background:#c8f7c5 !important;}
+.incorrect{background:#ffcccc !important;}
+
+#stats{margin-top:10px;font-size:14px;}
+#message{margin-top:10px;font-weight:bold;}
+</style>
+</head>
+
+<body>
+
+<div id="game">
+
+<h1>📊 GED Math Quest</h1>
+
+<div id="stageTitle"></div>
+
+<div id="xpContainer">
+<div id="xpBar"></div>
+</div>
+
+<div id="card">
+<div class="source" id="source"></div>
+<h3 id="question"></h3>
+<div id="choices"></div>
+</div>
+
+<div id="stats">
+XP: <span id="xp">0</span> |
+Level: <span id="level">1</span> |
+Progress: <span id="progress">0</span>/20
+</div>
+
+<div id="message"></div>
+
+</div>
+
+<script>
+
+// ---------- STATE ----------
+let xp=0;
+let level=1;
+let progress=0;
+let maxQuestions=20;
+
+// ---------- DOMAINS ----------
+const domains=[
+"Number Sense",
+"Algebra",
+"Data & Graphs",
+"Geometry",
+"Real World"
+];
+
+function currentDomain(){
+return domains[Math.min(level-1,domains.length-1)];
+}
+
+// ---------- SOURCES ----------
+function generateSource(domain){
+
+if(domain==="Number Sense"){
+return "A store lists items with prices and percentage discounts applied at checkout.";
+}
+
+if(domain==="Algebra"){
+return "A service charges a base fee plus a cost per unit used.";
+}
+
+if(domain==="Data & Graphs"){
+return "A graph shows a steady increase in value over time.";
+}
+
+if(domain==="Geometry"){
+return "A construction plan shows measurements for area and volume.";
+}
+
+if(domain==="Real World"){
+return "A worker logs hours and earnings for each day.";
+}
+
+}
+
+// ---------- QUESTIONS ----------
+function generateQuestion(){
+
+let domain=currentDomain();
+let source=generateSource(domain);
+
+let q="",correct="",wrong=[];
+
+// NUMBER SENSE
+if(domain==="Number Sense"){
+q="A $100 item is discounted by 20%. What is the final price?";
+correct="$80";
+wrong=["$20","$90","$120"];
+}
+
+// ALGEBRA
+if(domain==="Algebra"){
+q="A phone plan costs $5 plus $2 per GB. What does the slope represent?";
+correct="Cost per GB";
+wrong=["Starting fee","Total cost","Time"];
+}
+
+// DATA
+if(domain==="Data & Graphs"){
+q="The graph increases steadily. What does the slope represent?";
+correct="Rate of change";
+wrong=["Total value","Time","Start point"];
+}
+
+// GEOMETRY
+if(domain==="Geometry"){
+q="A box has side length 3. What is its volume?";
+correct="27";
+wrong=["9","18","36"];
+}
+
+// REAL WORLD
+if(domain==="Real World"){
+q="A worker earns $20/hour for 6 hours. What is total pay?";
+correct="$120";
+wrong=["$100","$110","$140"];
+}
+
+// HARDER QUESTIONS AS LEVEL INCREASES
+if(level>=3){
+q="A value increases from 50 to 75. What is the percent increase?";
+correct="50%";
+wrong=["25%","75%","100%"];
+}
+
+if(level>=4){
+q="Solve: 2(x+3)=14";
+correct="4";
+wrong=["5","6","3"];
+}
+
+if(level>=5){
+q="A car travels 60 mph for 3 hours. Distance?";
+correct="180 miles";
+wrong=["120","200","150"];
+}
+
+let answers=[correct,...wrong];
+answers.sort(()=>Math.random()-.5);
+
+return{
+source,
+question:q,
+choices:answers,
+correct:answers.indexOf(correct)
+};
+
+}
+
+// ---------- LOAD ----------
+function loadQuestion(){
+
+if(progress>=maxQuestions){
+endGame();
+return;
+}
+
+let q=generateQuestion();
+
+document.getElementById("stageTitle").innerText=
+"Level "+level+" – "+currentDomain();
+
+document.getElementById("source").innerText=q.source;
+document.getElementById("question").innerText=q.question;
+
+let div=document.getElementById("choices");
+div.innerHTML="";
+
+q.choices.forEach((c,i)=>{
+
+let el=document.createElement("div");
+el.className="choice";
+el.innerText=c;
+
+el.onclick=function(){
+
+if(el.classList.contains("correct")||el.classList.contains("incorrect")) return;
+
+let isCorrect=(i===q.correct);
+
+if(isCorrect){
+el.classList.add("correct");
+xp+=10+level*3;
+document.getElementById("message").innerText="✅ You’re thinking like the GED!";
+}else{
+el.classList.add("incorrect");
+document.getElementById("message").innerText="❌ Slow down — translate the problem.";
+}
+
+progress++;
+updateStats();
+
+// LEVEL UP
+if(progress%4===0 && level<domains.length){
+level++;
+document.getElementById("message").innerText="🚀 Level Up! "+currentDomain();
+}
+
+setTimeout(loadQuestion,1200);
+};
+
+div.appendChild(el);
+
+});
+
+}
+
+// ---------- STATS ----------
+function updateStats(){
+document.getElementById("xp").innerText=xp;
+document.getElementById("level").innerText=level;
+document.getElementById("progress").innerText=progress;
+
+let percent=(progress/maxQuestions)*100;
+document.getElementById("xpBar").style.width=percent+"%";
+}
+
+// ---------- END ----------
+function endGame(){
+document.getElementById("card").innerHTML=
+"<h2>🎉 Math Mastery Complete</h2>"+
+"<p>Total XP: "+xp+"</p>"+
+"<p>You applied real GED math reasoning.</p>"+
+"<button onclick='location.reload()'>Play Again</button>";
+}
+
+// ---------- START ----------
+loadQuestion();
+
+</script>
+
+</body>
+</html>
